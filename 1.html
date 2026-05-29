@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rest | 专业睡眠分析</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        /* UI 样式部分：一字未改！ */
+        :root {
+            --bg-color: #FBFBFD;
+            --surface-color: #FFFFFF;
+            --text-primary: #1D1D1F;
+            --text-secondary: #86868B;
+            --border-color: #E5E5EA;
+            
+            --color-excellent: #32D74B; 
+            --color-warning: #FF9F0A;   
+            --color-alert: #FF453A;     
+
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 32px;
+            --space-xl: 48px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px; 
+            padding: var(--space-xl) var(--space-md);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        header { display: flex; justify-content: space-between; align-items: flex-end; }
+        h1 { font-size: 32px; font-weight: 600; letter-spacing: -0.5px; }
+        .subtitle { color: var(--text-secondary); font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
+
+        .hero-card {
+            background-color: var(--surface-color);
+            border-radius: 24px;
+            padding: var(--space-lg);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s ease;
+        }
+        .hero-label { display: flex; align-items: center; gap: 8px; color: var(--text-secondary); font-size: 14px; margin-bottom: 12px; }
+        .hero-value { font-size: 48px; font-weight: 300; letter-spacing: -2px; display: flex; align-items: baseline; gap: 4px; }
+        .hero-unit { font-size: 18px; color: var(--text-secondary); }
+
+        .tabs { display: flex; background: rgba(118, 118, 128, 0.12); border-radius: 12px; padding: 4px; margin-top: var(--space-sm); }
+        .tab-btn {
+            flex: 1; padding: 8px 0; text-align: center; border: none; background: transparent;
+            font-size: 14px; font-weight: 500; color: var(--text-secondary); border-radius: 8px; cursor: pointer; transition: 0.2s;
+        }
+        .tab-btn.active { background: var(--surface-color); color: var(--text-primary); box-shadow: 0 3px 8px rgba(0,0,0,0.04); }
+
+        .view-section { display: none; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .controls { display: flex; gap: 8px; margin-bottom: var(--space-sm); flex-wrap: wrap; }
+        select, input[type="date"], input[type="time"] {
+            appearance: none; background: var(--surface-color); border: 1px solid var(--border-color);
+            padding: 8px 12px; border-radius: 8px; font-size: 13px; color: var(--text-primary); outline: none; flex: 1;
+        }
+        
+        .custom-date-range { display: none; gap: 8px; width: 100%; margin-bottom: var(--space-sm); animation: fadeIn 0.2s; }
+        .custom-date-range.show { display: flex; align-items: center; }
+        .custom-date-range span { color: var(--text-secondary); font-size: 13px; }
+
+        .chart-container {
+            background: var(--surface-color); border-radius: 24px; padding: var(--space-md) 0;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02); width: 100%; height: 360px;
+        }
+
+        .calendar-card { background: var(--surface-color); border-radius: 24px; padding: var(--space-md); box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02); }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); }
+        .cal-header button { background: none; border: none; cursor: pointer; color: var(--text-primary); font-size: 20px;}
+        .cal-month-year { font-size: 18px; font-weight: 600; }
+        
+        .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; text-align: center; }
+        .cal-day-name { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 500; }
+        
+        .cal-cell {
+            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            font-size: 15px; border-radius: 50%; cursor: pointer; position: relative; transition: all 0.2s;
+            -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+        }
+        .cal-cell:hover { background: var(--bg-color); }
+        .cal-cell.empty { pointer-events: none; }
+        .cal-cell.today { font-weight: bold; background: var(--bg-color); border: 1px dashed var(--text-secondary); }
+        
+        .cal-cell.selected { 
+            background: var(--surface-color); 
+            border: 2px solid var(--text-primary); 
+            font-weight: bold; 
+            z-index: 2;
+        }
+        
+        .status-dot { width: 5px; height: 5px; border-radius: 50%; margin-top: 2px; pointer-events: none; }
+
+        .record-modal {
+            position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface-color);
+            padding: var(--space-xl) var(--space-md) calc(var(--space-xl) + 20px); border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 24px rgba(0,0,0,0.1); 
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+            z-index: 10000; visibility: hidden;
+        }
+        .record-modal.show { transform: translateY(0); visibility: visible; }
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3); display: none; z-index: 9999; backdrop-filter: blur(2px);
+        }
+        .modal-overlay.show { display: block; }
+
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: var(--space-md); }
+        .form-group label { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+        
+        .btn-group { display: flex; gap: 12px; margin-top: var(--space-lg); }
+        .btn { flex: 1; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; border: none; }
+        .btn-primary { background: var(--text-primary); color: white; }
+        .btn-danger { background: rgba(255, 69, 58, 0.1); color: var(--color-alert); }
+        .btn-danger:hover { background: rgba(255, 69, 58, 0.2); }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div>
+                <div class="subtitle">Analytics</div>
+                <h1>Rest.</h1>
+            </div>
+            <i class="ph ph-moon-stars" style="font-size: 28px;"></i>
+        </header>
+
+        <div class="hero-card">
+            <div class="hero-label" id="hero-title"><i class="ph ph-bed"></i> 昨晚睡眠时长</div>
+            <div class="hero-value"><span id="latest-duration">--</span> <span class="hero-unit">hrs</span></div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('chart-view')">趋势图表</button>
+            <button class="tab-btn" onclick="switchTab('calendar-view')">睡眠日历</button>
+        </div>
+
+        <div id="chart-view" class="view-section active">
+            <div class="controls">
+                <select id="time-range" onchange="handleRangeChange()">
+                    <option value="week">最近一周</option>
+                    <option value="month">最近一月</option>
+                    <option value="custom">自定义范围</option>
+                </select>
+                <select id="data-metric" onchange="renderChart()">
+                    <option value="duration">睡眠时长 (小时)</option>
+                    <option value="bedtime">入睡时间</option>
+                    <option value="waketime">起床时间</option>
+                    <option value="all">综合看板 (睡眠带)</option>
+                </select>
+            </div>
+            <div class="custom-date-range" id="custom-range-inputs">
+                <input type="date" id="start-date" onchange="renderChart()">
+                <span>至</span>
+                <input type="date" id="end-date" onchange="renderChart()">
+            </div>
+            <div class="chart-container" id="main-chart"></div>
+        </div>
+
+        <div id="calendar-view" class="view-section">
+            <div class="calendar-card">
+                <div class="cal-header">
+                    <button onclick="changeMonth(-1)"><i class="ph ph-caret-left"></i></button>
+                    <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+                        <div class="cal-month-year" id="cal-title">--年 --月</div>
+                        <input type="month" id="month-picker" onchange="jumpToMonth()" style="position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer;">
+                    </div>
+                    <button onclick="changeMonth(1)"><i class="ph ph-caret-right"></i></button>
+                </div>
+                <div class="cal-grid" id="cal-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="overlay" onclick="closeModal()"></div>
+    <div class="record-modal" id="modal">
+        <h3 id="modal-title" style="margin-bottom: 24px;">记录睡眠</h3>
+        <input type="hidden" id="edit-date-key">
+        
+        <div id="modal-view-state" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 8px;">
+                <p style="font-size: 16px; color: var(--text-secondary);"><i class="ph ph-moon"></i> 入睡: <span id="view-bed" style="color: var(--text-primary); font-weight: 600; margin-left: 8px;"></span></p>
+                <p style="font-size: 16px; color: var(--text-secondary);"><i class="ph ph-sun"></i> 起床: <span id="view-wake" style="color: var(--text-primary); font-weight: 600; margin-left: 8px;"></span></p>
+                <p style="font-size: 16px; color: var(--text-secondary);"><i class="ph ph-hourglass-high"></i> 时长: <span id="view-dur" style="color: var(--text-primary); font-weight: 600; margin-left: 8px;"></span></p>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); text-align: center; margin-top: 28px; opacity: 0.6;">💡 长按日历对应日期可编辑记录</p>
+        </div>
+
+        <div id="modal-edit-state" style="display: none;">
+            <div style="display: flex; gap: 16px;">
+                <div class="form-group" style="flex: 1;">
+                    <label><i class="ph ph-moon"></i> 入睡时间</label>
+                    <input type="time" id="edit-bed" required>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label><i class="ph ph-sun"></i> 起床时间</label>
+                    <input type="time" id="edit-wake" required>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-danger" id="btn-delete" onclick="deleteRecord()" style="display: none;">删除</button>
+                <button class="btn btn-primary" onclick="saveRecord()">保存记录</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 核心改造：完全接入 Supabase 云端数据库
+        // ==========================================
+        const SUPABASE_URL = 'https://qzxptjuthlyucuchtepr.supabase.co/rest/v1/sleep_logs';
+        const SUPABASE_KEY = 'sb_publishable_L6bJ-eRJqSa4ltZhvEGCUw_NdZVcMHT';
+        const HEADERS = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': 'Bearer ' + SUPABASE_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal'
+        };
+
+        // 本地数据池（现在开始从云端拉取，不再写死）
+        let sleepDatabase = {}; 
+
+        // 1. 从云端抓取真实数据并格式化
+        async function fetchFromSupabase() {
+            try {
+                // 按照记录时间先后排序拉取
+                const res = await fetch(`${SUPABASE_URL}?select=*&order=record_time.asc`, { headers: HEADERS });
+                const logs = await res.json();
+                
+                sleepDatabase = {}; // 清空本地旧数据
+                let pendingSleep = null;
+
+                // 核心配对逻辑：把散落的 sleep 和 wake 组合成你 UI 需要的格式
+                logs.forEach(log => {
+                    const timeStr = log.record_time.replace('T', ' '); 
+                    const [datePart, timePart] = timeStr.split(' ');
+                    const cleanTime = timePart ? timePart.slice(0, 5) : "00:00"; // 提取 HH:mm
+
+                    if (log.action === 'sleep') {
+                        pendingSleep = { time: cleanTime, id: log.id };
+                    } else if (log.action === 'wake') {
+                        // 统一以“起床日”作为该次睡眠的主键 DateKey
+                        if (pendingSleep) {
+                            sleepDatabase[datePart] = {
+                                bed: pendingSleep.time,
+                                wake: cleanTime,
+                                sleep_id: pendingSleep.id, // 记录专属ID方便后续删除修改
+                                wake_id: log.id
+                            };
+                            pendingSleep = null;
+                        }
+                    }
+                });
+                
+                // 数据拉取配对完毕，全面刷新你的绝美 UI
+                refreshAllViews();
+            } catch (err) {
+                console.error("加载数据失败，请检查网络", err);
+            }
+        }
+
+        // 2. 将网页上编辑/新增的数据保存回云端
+        async function saveToSupabase(dateKey, bed, wake, oldSleepId, oldWakeId) {
+            // 先清理旧数据（如果有的话）
+            if (oldSleepId) await fetch(`${SUPABASE_URL}?id=eq.${oldSleepId}`, { method: 'DELETE', headers: HEADERS });
+            if (oldWakeId) await fetch(`${SUPABASE_URL}?id=eq.${oldWakeId}`, { method: 'DELETE', headers: HEADERS });
+
+            // 严密计算入睡日期（如果入睡时间大于12点，说明是头天晚上睡的）
+            const wakeDateStr = `${dateKey} ${wake}`;
+            let bedDateStr = "";
+            const bedH = parseInt(bed.split(':')[0]);
+            
+            if (bedH >= 12) {
+                const d = new Date(dateKey + 'T12:00:00');
+                d.setDate(d.getDate() - 1);
+                const prevDay = d.toISOString().split('T')[0];
+                bedDateStr = `${prevDay} ${bed}`;
+            } else {
+                bedDateStr = `${dateKey} ${bed}`;
+            }
+
+            // 发送新数据包到云端
+            const payload = [
+                { action: 'sleep', record_time: bedDateStr },
+                { action: 'wake', record_time: wakeDateStr }
+            ];
+
+            await fetch(SUPABASE_URL, {
+                method: 'POST',
+                headers: HEADERS,
+                body: JSON.stringify(payload)
+            });
+
+            // 保存完毕重新拉取刷新
+            fetchFromSupabase();
+        }
+
+        // 3. 删除记录同步云端
+        async function deleteFromSupabase(sleepId, wakeId) {
+            if (sleepId) await fetch(`${SUPABASE_URL}?id=eq.${sleepId}`, { method: 'DELETE', headers: HEADERS });
+            if (wakeId) await fetch(`${SUPABASE_URL}?id=eq.${wakeId}`, { method: 'DELETE', headers: HEADERS });
+            fetchFromSupabase();
+        }
+
+        // ==========================================
+        // 原始纯粹的逻辑计算与 UI 交互（一行未碰）
+        // ==========================================
+
+        function timeToFloat12h(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            let val = h < 12 ? h + 12 : h - 12;
+            return val + (m / 60);
+        }
+
+        function float12hToTime(val) {
+            let h = Math.floor(val) + 12;
+            if (h >= 24) h -= 24;
+            let m = Math.round((val - Math.floor(val)) * 60);
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        }
+
+        function calcDuration(bed, wake) {
+            const b = timeToFloat12h(bed);
+            const w = timeToFloat12h(wake);
+            let dur = w - b;
+            if (dur < 0) dur += 24; 
+            return Number(dur.toFixed(1));
+        }
+
+        function getHealthColor(bedTimeStr) {
+            const h = parseInt(bedTimeStr.split(':')[0]);
+            if (h >= 18 && h <= 23) return 'var(--color-excellent)';
+            if (h === 0 || h === 1) return 'var(--color-warning)';
+            return 'var(--color-alert)';
+        }
+
+        let currentSelectedDate = null; 
+
+        function updateHeroCard(dateKey = undefined) {
+            const titleEl = document.getElementById('hero-title');
+            const durEl = document.getElementById('latest-duration');
+
+            if (dateKey !== undefined) {
+                currentSelectedDate = dateKey;
+            }
+
+            if (currentSelectedDate) {
+                const [y, m, d] = currentSelectedDate.split('-');
+                titleEl.innerHTML = `<i class="ph ph-calendar-check"></i> ${y}年${parseInt(m)}月${parseInt(d)}日 睡眠时长`;
+                if (sleepDatabase[currentSelectedDate]) {
+                    durEl.innerText = calcDuration(sleepDatabase[currentSelectedDate].bed, sleepDatabase[currentSelectedDate].wake);
+                } else {
+                    durEl.innerText = '--';
+                }
+            } else {
+                titleEl.innerHTML = `<i class="ph ph-bed"></i> 昨晚睡眠时长`;
+                const sortedDates = Object.keys(sleepDatabase).sort();
+                if(sortedDates.length > 0) {
+                    const latest = sleepDatabase[sortedDates[sortedDates.length - 1]];
+                    durEl.innerText = calcDuration(latest.bed, latest.wake);
+                } else {
+                    durEl.innerText = '--';
+                }
+            }
+
+            document.querySelectorAll('.cal-cell:not(.empty)').forEach(cell => {
+                if (cell.getAttribute('data-date') === currentSelectedDate) {
+                    cell.classList.add('selected');
+                } else {
+                    cell.classList.remove('selected');
+                }
+            });
+        }
+
+        let pressTimer = null;
+        let longPressFired = false; 
+
+        function startPress(dateKey) {
+            longPressFired = false;
+            if(pressTimer) clearTimeout(pressTimer);
+            pressTimer = setTimeout(() => {
+                longPressFired = true; 
+                if (navigator.vibrate) navigator.vibrate(50); 
+                openModal(dateKey, 'edit');
+            }, 500);
+        }
+
+        function endPress() {
+            if(pressTimer) clearTimeout(pressTimer);
+        }
+
+        function cancelPress() {
+            if(pressTimer) clearTimeout(pressTimer);
+        }
+
+        const calGrid = document.getElementById('cal-grid');
+
+        calGrid.addEventListener('contextmenu', e => {
+            if(e.target.closest('.cal-cell')) e.preventDefault();
+        });
+
+        calGrid.addEventListener('click', (e) => {
+            const cell = e.target.closest('.cal-cell:not(.empty)');
+            if(!cell) return;
+
+            e.stopPropagation(); 
+            if (longPressFired) {
+                longPressFired = false;
+                return;
+            }
+
+            const dateKey = cell.getAttribute('data-date');
+            updateHeroCard(dateKey); 
+            
+            if (sleepDatabase[dateKey]) {
+                setTimeout(() => {
+                    openModal(dateKey, 'view');
+                }, 10);
+            }
+        });
+
+        function openModal(dateKey, mode) {
+            updateHeroCard(dateKey);
+            document.getElementById('edit-date-key').value = dateKey;
+            const record = sleepDatabase[dateKey];
+            
+            const viewState = document.getElementById('modal-view-state');
+            const editState = document.getElementById('modal-edit-state');
+
+            if (mode === 'view') {
+                document.getElementById('modal-title').innerText = `睡眠详情 (${dateKey})`;
+                document.getElementById('view-bed').innerText = record.bed;
+                document.getElementById('view-bed').style.color = getHealthColor(record.bed);
+                document.getElementById('view-wake').innerText = record.wake;
+                document.getElementById('view-dur').innerText = calcDuration(record.bed, record.wake) + " 小时";
+                
+                viewState.style.display = 'block';
+                editState.style.display = 'none';
+            } else if (mode === 'edit') {
+                document.getElementById('modal-title').innerText = record ? `编辑记录 (${dateKey})` : `添加记录 (${dateKey})`;
+                document.getElementById('edit-bed').value = record ? record.bed : '23:00';
+                document.getElementById('edit-wake').value = record ? record.wake : '07:00';
+                document.getElementById('btn-delete').style.display = record ? 'block' : 'none';
+                
+                viewState.style.display = 'none';
+                editState.style.display = 'block';
+            }
+
+            document.getElementById('modal').classList.add('show');
+            document.getElementById('overlay').classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.remove('show');
+            document.getElementById('overlay').classList.remove('show');
+        }
+
+        // ==========================================
+        // 注入云端保存逻辑
+        // ==========================================
+        function saveRecord() {
+            const dateKey = document.getElementById('edit-date-key').value;
+            const bed = document.getElementById('edit-bed').value;
+            const wake = document.getElementById('edit-wake').value;
+            if(!bed || !wake) return alert("请完整填写时间！");
+            
+            // 拿到旧记录的ID，传给云端清理
+            const record = sleepDatabase[dateKey];
+            const oldSleepId = record ? record.sleep_id : null;
+            const oldWakeId = record ? record.wake_id : null;
+
+            closeModal(); // 秒关弹窗保持丝滑
+            saveToSupabase(dateKey, bed, wake, oldSleepId, oldWakeId);
+        }
+
+        // ==========================================
+        // 注入云端删除逻辑
+        // ==========================================
+        function deleteRecord() {
+            const dateKey = document.getElementById('edit-date-key').value;
+            const record = sleepDatabase[dateKey];
+            closeModal();
+            if (record) {
+                deleteFromSupabase(record.sleep_id, record.wake_id);
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tabId === 'chart-view') {
+                currentSelectedDate = null; 
+                updateHeroCard();
+                renderChart(); 
+            } else {
+                updateHeroCard(); 
+            }
+        }
+
+        function refreshAllViews() {
+            renderCalendar();
+            renderChart();
+            updateHeroCard();
+        }
+
+        let currentYear = 2026;
+        let currentMonth = 3; 
+
+        function renderCalendar() {
+            calGrid.innerHTML = '';
+            
+            ['日', '一', '二', '三', '四', '五', '六'].forEach(day => {
+                calGrid.innerHTML += `<div class="cal-day-name">${day}</div>`;
+            });
+
+            document.getElementById('cal-title').innerText = `${currentYear}年 ${currentMonth + 1}月`;
+            document.getElementById('month-picker').value = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}`;
+
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            for (let i = 0; i < firstDay; i++) calGrid.innerHTML += `<div class="cal-cell empty"></div>`;
+
+            for (let i = 1; i <= daysInMonth; i++) {
+                const dateKey = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const record = sleepDatabase[dateKey];
+                
+                let dotHtml = '';
+                if (record) {
+                    dotHtml = `<div class="status-dot" style="background-color: ${getHealthColor(record.bed)}"></div>`;
+                }
+
+                let extraClass = '';
+                if (dateKey === todayStr) extraClass += 'today ';
+                if (dateKey === currentSelectedDate) extraClass += 'selected ';
+
+                calGrid.innerHTML += `
+                    <div class="cal-cell ${extraClass}" data-date="${dateKey}"
+                         onmousedown="startPress('${dateKey}')" 
+                         onmouseup="endPress()" 
+                         onmouseleave="cancelPress()" 
+                         ontouchstart="startPress('${dateKey}')" 
+                         ontouchend="endPress()" 
+                         ontouchmove="cancelPress()" 
+                         ontouchcancel="cancelPress()" 
+                         oncontextmenu="return false;">
+                        ${i} ${dotHtml}
+                    </div>
+                `;
+            }
+        }
+
+        function changeMonth(offset) {
+            currentMonth += offset;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            renderCalendar();
+        }
+
+        function jumpToMonth() {
+            const val = document.getElementById('month-picker').value;
+            if(!val) return;
+            const [y, m] = val.split('-');
+            currentYear = parseInt(y);
+            currentMonth = parseInt(m) - 1; 
+            renderCalendar();
+        }
+
+        let myChart = null;
+
+        function handleRangeChange() {
+            const range = document.getElementById('time-range').value;
+            const customDiv = document.getElementById('custom-range-inputs');
+            if(range === 'custom') {
+                customDiv.classList.add('show');
+            } else {
+                customDiv.classList.remove('show');
+                renderChart(); 
+            }
+        }
+
+        function getFilteredData() {
+            let dates = Object.keys(sleepDatabase).sort();
+            const range = document.getElementById('time-range').value;
+            
+            if (range === 'custom') {
+                const start = document.getElementById('start-date').value;
+                const end = document.getElementById('end-date').value;
+                if(start && end) {
+                    dates = dates.filter(d => d >= start && d <= end);
+                }
+            } else if (range === 'week') {
+                dates = dates.slice(-7);
+            } else if (range === 'month') {
+                dates = dates.slice(-30);
+            }
+            
+            return dates.map(d => ({
+                date: d.slice(-5),
+                fullDate: d,
+                bed: sleepDatabase[d].bed,
+                wake: sleepDatabase[d].wake,
+                dur: calcDuration(sleepDatabase[d].bed, sleepDatabase[d].wake)
+            }));
+        }
+
+        function renderChart() {
+            if(!myChart) myChart = echarts.init(document.getElementById('main-chart'));
+            
+            const rawData = getFilteredData();
+            const dates = rawData.map(d => d.date);
+            const metric = document.getElementById('data-metric').value;
+
+            myChart.clear();
+
+            let option = {
+                grid: { top: 40, right: 20, bottom: 30, left: 45 },
+                tooltip: { 
+                    trigger: 'axis', backgroundColor: 'rgba(255,255,255,0.9)', 
+                    borderWidth: 0, textStyle: { color: '#1D1D1F' },
+                    extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.08); border-radius: 8px;'
+                },
+                xAxis: { type: 'category', data: dates, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#86868B' } },
+            };
+
+            if (metric === 'all') {
+                const startData = rawData.map(d => timeToFloat12h(d.bed));
+                const durData = rawData.map(d => d.dur);
+                
+                option.yAxis = {
+                    type: 'value', min: 0, max: 24, inverse: true,
+                    splitLine: { lineStyle: { type: 'dashed', color: '#E5E5EA' } },
+                    axisLabel: { formatter: val => float12hToTime(val), color: '#86868B' }
+                };
+                
+                option.tooltip.formatter = function (params) {
+                    const idx = params[0].dataIndex;
+                    const rd = rawData[idx];
+                    return `<b>${rd.fullDate}</b><br/>入睡: ${rd.bed}<br/>起床: ${rd.wake}<br/>时长: ${rd.dur}小时`;
+                };
+
+                option.series = [
+                    { name: '支撑', type: 'bar', stack: 'total', itemStyle: { borderColor: 'rgba(0,0,0,0)', color: 'rgba(0,0,0,0)' }, data: startData },
+                    { name: '睡眠带', type: 'bar', stack: 'total', itemStyle: { color: 'rgba(50, 215, 75, 0.2)', borderColor: '#32D74B', borderWidth: 1, borderRadius: 4 }, barWidth: '40%', data: durData }
+                ];
+            } 
+            else if (metric === 'duration') {
+                option.yAxis = { type: 'value', splitLine: { lineStyle: { type: 'dashed', color: '#E5E5EA' } } };
+                option.series = [{ name: '时长', type: 'bar', barWidth: '30%', itemStyle: { color: '#1D1D1F', borderRadius: [4, 4, 0, 0] }, data: rawData.map(d => d.dur) }];
+            }
+            else if (metric === 'bedtime' || metric === 'waketime') {
+                const isBed = metric === 'bedtime';
+                const yData = rawData.map(d => timeToFloat12h(isBed ? d.bed : d.wake));
+                
+                option.yAxis = { 
+                    type: 'value', scale: true, splitLine: { lineStyle: { type: 'dashed', color: '#E5E5EA' } },
+                    axisLabel: { formatter: val => float12hToTime(val), color: '#86868B' }
+                };
+                
+                option.tooltip.formatter = function (params) {
+                    const val = float12hToTime(params[0].data);
+                    return `<b>${params[0].name}</b><br/>${isBed ? '入睡' : '起床'}: ${val}`;
+                };
+
+                option.series = [{ 
+                    name: '时间', type: 'line', smooth: true, symbolSize: 8,
+                    itemStyle: { color: isBed ? '#FF9F0A' : '#32D74B' },
+                    lineStyle: { width: 3 }, data: yData 
+                }];
+            }
+
+            myChart.setOption(option);
+        }
+
+        // ==========================================
+        // 启动！从取代原本死板渲染的地方，换成了向云端索取
+        // ==========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const weekAgo = new Date(today);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            document.getElementById('end-date').value = today.toISOString().split('T')[0];
+            document.getElementById('start-date').value = weekAgo.toISOString().split('T')[0];
+
+            // 网页加载时，触发拉取云端数据 -> 拉完会自动刷新一切 UI
+            fetchFromSupabase();
+            
+            window.addEventListener('resize', () => { if(myChart) myChart.resize(); });
+        });
+    </script>
+</body>
+</html>
