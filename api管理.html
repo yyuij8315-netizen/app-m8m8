@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>API存储管理器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.5;
+            padding: 0;
+            margin: 0;
+            font-size: 16px;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 0;
+            box-shadow: none;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            color: white;
+            padding: 20px 15px;
+            border-bottom: none;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 22px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            padding-bottom: 20px;
+        }
+        
+        /* 添加API区域 */
+        .add-api-section {
+            padding: 20px 15px;
+            border-bottom: 1px solid #eaeaea;
+            background-color: #f9fafc;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-title i {
+            color: #6a11cb;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+        
+        .input-group {
+            width: 100%;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #444;
+            font-size: 15px;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 14px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.2s;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #6a11cb;
+            box-shadow: 0 0 0 2px rgba(106, 17, 203, 0.1);
+        }
+        
+        .btn {
+            padding: 15px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            min-height: 50px;
+        }
+        
+        .btn-primary {
+            background-color: #6a11cb;
+            color: white;
+        }
+        
+        .btn-primary:active {
+            background-color: #5a0db3;
+            transform: scale(0.98);
+        }
+        
+        .btn-secondary {
+            background-color: #f0f2f5;
+            color: #444;
+        }
+        
+        .btn-secondary:active {
+            background-color: #e4e6e9;
+            transform: scale(0.98);
+        }
+        
+        .form-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        /* API列表区域 */
+        .api-list-section {
+            padding: 20px 15px;
+            flex-grow: 1;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 50px 15px;
+            color: #777;
+        }
+        
+        .empty-state i {
+            font-size: 50px;
+            margin-bottom: 15px;
+            color: #d1d5db;
+        }
+        
+        .api-card {
+            background-color: white;
+            border: 1px solid #e1e5eb;
+            border-radius: 12px;
+            padding: 20px 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            transition: all 0.2s;
+        }
+        
+        .api-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f0f0f0;
+            flex-wrap: wrap;
+        }
+        
+        .api-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .model-count {
+            font-size: 14px;
+            color: #666;
+            font-weight: normal;
+            margin-left: 8px;
+        }
+        
+        .api-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+        
+        .copy-all-btn {
+            color: #6a11cb;
+            background-color: rgba(106, 17, 203, 0.08);
+        }
+        
+        .copy-all-btn:active {
+            background-color: rgba(106, 17, 203, 0.15);
+        }
+        
+        /* 删除按钮改为蓝色 */
+        .delete-btn {
+            color: #2575fc; /* 改为蓝色 */
+            background-color: rgba(37, 117, 252, 0.08); /* 改为蓝色 */
+        }
+        
+        .delete-btn:active {
+            background-color: rgba(37, 117, 252, 0.15); /* 改为蓝色 */
+        }
+        
+        .api-field {
+            margin-bottom: 15px;
+        }
+        
+        .field-label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        
+        .field-value {
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #eee;
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 15px;
+            word-break: break-all;
+            position: relative;
+            padding-right: 70px;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .url-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: calc(100% - 80px);
+            display: block;
+        }
+        
+        .copy-field {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #6a11cb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 60px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .copy-field:active {
+            background-color: #5a0db3;
+            transform: translateY(-50%) scale(0.95);
+        }
+        
+        /* 分隔线 */
+        .divider {
+            height: 1px;
+            background-color: #eee;
+            margin: 20px 0;
+        }
+        
+        /* 模型列表样式 - 优化排版 */
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .model-title {
+            font-weight: 600;
+            color: #555;
+            font-size: 15px;
+        }
+        
+        .copy-all-models-btn {
+            background-color: #6a11cb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 80px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .copy-all-models-btn:active {
+            background-color: #5a0db3;
+            transform: scale(0.95);
+        }
+        
+        .model-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        /* 修改模型行长度和样式 */
+        .model-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 10px;
+            background-color: white;
+            border-radius: 8px;
+            border: 1px solid #e1e5eb;
+            transition: all 0.2s;
+            min-height: 52px;
+        }
+        
+        .model-item:active {
+            background-color: #f8f9fa;
+        }
+        
+        .model-name {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 15px;
+            flex-grow: 1;
+            padding-right: 10px;
+            word-break: break-word;
+            max-width: 70%; /* 限制模型名称长度 */
+        }
+        
+        .model-copy-btn {
+            background-color: #6a11cb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 60px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .model-copy-btn:active {
+            background-color: #5a0db3;
+            transform: scale(0.95);
+        }
+        
+        .date-field {
+            margin-top: 10px;
+            margin-bottom: 0;
+        }
+        
+        .date-field .field-label {
+            margin-bottom: 8px;
+        }
+        
+        .date-field .field-value {
+            font-family: inherit;
+            padding-right: 12px;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 15px;
+            color: #777;
+            font-size: 12px;
+            border-top: 1px solid #eee;
+            margin-top: auto;
+            background-color: #f9fafc;
+        }
+        
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background-color: #2ecc71;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 1000;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        .model-input-container {
+            display: flex;
+            gap: 10px;
+            flex-direction: column;
+        }
+        
+        .model-input-container input {
+            flex: 1;
+        }
+        
+        .add-model-btn {
+            padding: 14px 15px;
+            background-color: #f0f2f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #444;
+            transition: all 0.2s;
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .add-model-btn:active {
+            background-color: #e4e6e9;
+            transform: scale(0.98);
+        }
+        
+        .quick-models {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        
+        .quick-model-btn {
+            background-color: #f0f2f5;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 44px;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .quick-model-btn:active {
+            background-color: #e4e6e9;
+            transform: scale(0.95);
+        }
+        
+        .selected-models {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+            min-height: 40px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border: 1px dashed #ddd;
+        }
+        
+        .selected-model-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: #6a11cb;
+            color: white;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            gap: 6px;
+            min-height: 32px;
+        }
+        
+        .selected-model-tag i {
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0.8;
+            min-width: 16px;
+            min-height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .selected-model-tag i:active {
+            opacity: 1;
+        }
+        
+        .model-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+        
+        /* 移动端优化 */
+        @media (min-width: 768px) {
+            .container {
+                max-width: 600px;
+                margin: 20px auto;
+                border-radius: 16px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                min-height: auto;
+            }
+            
+            header {
+                border-radius: 16px 16px 0 0;
+            }
+            
+            footer {
+                border-radius: 0 0 16px 16px;
+            }
+        }
+        
+        /* 小屏幕手机优化 */
+        @media (max-width: 320px) {
+            header {
+                padding: 15px 12px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .subtitle {
+                font-size: 13px;
+            }
+            
+            .add-api-section, .api-list-section {
+                padding: 15px 12px;
+            }
+            
+            .api-card {
+                padding: 15px 12px;
+            }
+            
+            .btn {
+                padding: 12px 15px;
+                min-height: 44px;
+            }
+            
+            .model-name {
+                max-width: 60%; /* 在小屏幕上进一步限制模型名称长度 */
+            }
+        }
+        
+        /* 滚动条优化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* 触摸反馈优化 */
+        .touch-feedback:active {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-key"></i> API存储管理器</h1>
+            <p class="subtitle">安全存储和管理您的API密钥，支持多模型绑定</p>
+        </header>
+        
+        <div class="main-content">
+            <section class="add-api-section">
+                <h2 class="section-title"><i class="fas fa-plus-circle"></i> 添加新的API</h2>
+                
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="api-url"><i class="fas fa-link"></i> API URL</label>
+                        <input type="text" id="api-url" placeholder="https://api.example.com/v1/endpoint">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="api-key"><i class="fas fa-key"></i> API 密钥</label>
+                        <input type="text" id="api-key" placeholder="sk-... 或 apikey...">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="api-name"><i class="fas fa-tag"></i> API 名称 (可选)</label>
+                        <input type="text" id="api-name" placeholder="例如: OpenAI生产环境">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="input-group">
+                        <label for="api-model"><i class="fas fa-robot"></i> 绑定模型 (可多选)</label>
+                        <div class="model-input-container">
+                            <input type="text" id="api-model" placeholder="输入模型名称，例如: gpt-4">
+                            <button type="button" id="add-model-btn" class="add-model-btn">
+                                <i class="fas fa-plus"></i> 添加模型
+                            </button>
+                        </div>
+                        
+                        <div class="quick-models">
+                            <div class="quick-model-btn" data-model="gpt-4">GPT-4</div>
+                            <div class="quick-model-btn" data-model="gpt-3.5-turbo">GPT-3.5 Turbo</div>
+                            <div class="quick-model-btn" data-model="claude-3">Claude 3</div>
+                            <div class="quick-model-btn" data-model="gemini-pro">Gemini Pro</div>
+                            <div class="quick-model-btn" data-model="llama-2">Llama 2</div>
+                            <div class="quick-model-btn" data-model="dall-e-3">DALL-E 3</div>
+                        </div>
+                        
+                        <div class="selected-models" id="selected-models">
+                            <!-- 已选择的模型会动态添加到这里 -->
+                            <div class="placeholder-text" style="color: #999; font-style: italic;">暂无模型，请添加模型</div>
+                        </div>
+                        
+                        <div class="model-hint">
+                            <i class="fas fa-info-circle"></i> 提示：可绑定多个模型，每个模型将单独显示为一行
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button id="save-api-btn" class="btn btn-primary">
+                        <i class="fas fa-save"></i> 保存API
+                    </button>
+                    <button id="clear-form-btn" class="btn btn-secondary">
+                        <i class="fas fa-eraser"></i> 清空表单
+                    </button>
+                </div>
+            </section>
+            
+            <section class="api-list-section">
+                <h2 class="section-title"><i class="fas fa-list"></i> 已存储的API</h2>
+                
+                <div id="api-list-container">
+                    <!-- API卡片将通过JavaScript动态生成 -->
+                    <div class="empty-state" id="empty-state">
+                        <i class="fas fa-key"></i>
+                        <h3>暂无API存储</h3>
+                        <p>添加您的第一个API密钥开始使用</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+        
+        <footer>
+            <p>API存储管理器 &copy; 2023 | 数据存储在本地浏览器中，仅您本人可以访问</p>
+        </footer>
+    </div>
+    
+    <div id="notification" class="notification">
+        <i class="fas fa-check-circle"></i>
+        <span id="notification-text">内容已复制到剪贴板</span>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const apiUrlInput = document.getElementById('api-url');
+            const apiKeyInput = document.getElementById('api-key');
+            const apiNameInput = document.getElementById('api-name');
+            const apiModelInput = document.getElementById('api-model');
+            const selectedModelsContainer = document.getElementById('selected-models');
+            const saveApiBtn = document.getElementById('save-api-btn');
+            const clearFormBtn = document.getElementById('clear-form-btn');
+            const addModelBtn = document.getElementById('add-model-btn');
+            const apiListContainer = document.getElementById('api-list-container');
+            const emptyState = document.getElementById('empty-state');
+            const notification = document.getElementById('notification');
+            const notificationText = document.getElementById('notification-text');
+            const quickModelButtons = document.querySelectorAll('.quick-model-btn');
+            
+            // 当前选择的模型数组
+            let selectedModels = [];
+            
+            // 从本地存储加载API
+            let apiList = loadFromLocalStorage('apiList') || [];
+            
+            // 初始化显示API列表
+            renderApiList();
+            
+            // 添加模型按钮点击事件
+            addModelBtn.addEventListener('click', function() {
+                addSelectedModel();
+            });
+            
+            // 输入框回车键添加模型
+            apiModelInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addSelectedModel();
+                }
+            });
+            
+            // 快速模型按钮点击事件
+            quickModelButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const model = this.getAttribute('data-model');
+                    addModelToList(model);
+                });
+            });
+            
+            // 添加模型到选择列表
+            function addSelectedModel() {
+                const model = apiModelInput.value.trim();
+                if (model) {
+                    addModelToList(model);
+                    apiModelInput.value = '';
+                    apiModelInput.focus();
+                }
+            }
+            
+            // 添加模型到列表
+            function addModelToList(model) {
+                if (!selectedModels.includes(model)) {
+                    selectedModels.push(model);
+                    renderSelectedModels();
+                } else {
+                    showNotification(`模型 "${model}" 已添加`, 'warning');
+                }
+            }
+            
+            // 从列表中移除模型
+            function removeModelFromList(model) {
+                selectedModels = selectedModels.filter(m => m !== model);
+                renderSelectedModels();
+            }
+            
+            // 渲染已选择的模型
+            function renderSelectedModels() {
+                selectedModelsContainer.innerHTML = '';
+                
+                if (selectedModels.length === 0) {
+                    selectedModelsContainer.innerHTML = '<div class="placeholder-text" style="color: #999; font-style: italic;">暂无模型，请添加模型</div>';
+                    return;
+                }
+                
+                selectedModels.forEach(model => {
+                    const tag = document.createElement('div');
+                    tag.className = 'selected-model-tag';
+                    tag.innerHTML = `
+                        ${model}
+                        <i class="fas fa-times" data-model="${model}"></i>
+                    `;
+                    selectedModelsContainer.appendChild(tag);
+                });
+                
+                // 为删除按钮添加事件
+                selectedModelsContainer.querySelectorAll('.selected-model-tag i').forEach(icon => {
+                    icon.addEventListener('click', function() {
+                        const modelToRemove = this.getAttribute('data-model');
+                        removeModelFromList(modelToRemove);
+                    });
+                });
+            }
+            
+            // 保存API按钮点击事件
+            saveApiBtn.addEventListener('click', function() {
+                const apiUrl = apiUrlInput.value.trim();
+                const apiKey = apiKeyInput.value.trim();
+                const apiName = apiNameInput.value.trim();
+                
+                // 验证输入
+                if (!apiUrl || !apiKey) {
+                    showNotification('请填写API URL和密钥', 'error');
+                    return;
+                }
+                
+                if (selectedModels.length === 0) {
+                    showNotification('请至少添加一个模型', 'error');
+                    return;
+                }
+                
+                // 显示保存中状态
+                const originalText = saveApiBtn.innerHTML;
+                saveApiBtn.innerHTML = '<div style="display:inline-block;width:20px;height:20px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;"></div> 保存中...';
+                saveApiBtn.disabled = true;
+                
+                // 创建API对象
+                const apiItem = {
+                    id: Date.now().toString(),
+                    url: apiUrl,
+                    key: apiKey,
+                    models: [...selectedModels], // 存储模型数组
+                    name: apiName || `API ${apiList.length + 1}`,
+                    date: new Date().toLocaleDateString('zh-CN')
+                };
+                
+                // 添加到列表
+                apiList.push(apiItem);
+                
+                // 保存到本地存储
+                saveToLocalStorage('apiList', apiList);
+                
+                // 重新渲染列表
+                setTimeout(() => {
+                    renderApiList();
+                    
+                    // 清空表单
+                    clearForm();
+                    
+                    // 恢复按钮状态
+                    saveApiBtn.innerHTML = originalText;
+                    saveApiBtn.disabled = false;
+                    
+                    // 显示成功通知
+                    showNotification(`API "${apiItem.name}" 已成功保存`);
+                }, 300);
+            });
+            
+            // 清空表单按钮点击事件
+            clearFormBtn.addEventListener('click', clearForm);
+            
+            // 渲染API列表
+            function renderApiList() {
+                // 清空容器
+                apiListContainer.innerHTML = '';
+                
+                // 如果没有API，显示空状态
+                if (apiList.length === 0) {
+                    apiListContainer.appendChild(emptyState);
+                    emptyState.style.display = 'block';
+                    return;
+                }
+                
+                // 隐藏空状态
+                emptyState.style.display = 'none';
+                
+                // 按添加时间倒序排列
+                const sortedApiList = [...apiList].sort((a, b) => b.id - a.id);
+                
+                // 为每个API创建卡片
+                sortedApiList.forEach(api => {
+                    const apiCard = document.createElement('div');
+                    apiCard.className = 'api-card';
+                    apiCard.dataset.id = api.id;
+                    
+                    // 创建模型列表HTML - 每个模型单独一行
+                    let modelsHtml = '';
+                    if (api.models && api.models.length > 0) {
+                        modelsHtml = api.models.map(model => 
+                            `<div class="model-item">
+                                <span class="model-name">${escapeHtml(model)}</span>
+                                <button class="model-copy-btn" data-model="${escapeHtml(model)}">
+                                    <i class="fas fa-copy"></i> 复制
+                                </button>
+                            </div>`
+                        ).join('');
+                    }
+                    
+                    // 截断URL显示
+                    let displayUrl = api.url;
+                    if (displayUrl.length > 40) {
+                        displayUrl = displayUrl.substring(0, 37) + '...';
+                    }
+                    
+                    apiCard.innerHTML = `
+                        <div class="api-header">
+                            <div class="api-title">
+                                <i class="fas fa-key"></i>
+                                ${escapeHtml(api.name)}
+                                <span class="model-count">${api.models ? api.models.length : 0}个模型</span>
+                            </div>
+                            <div class="api-actions">
+                                <button class="action-btn copy-all-btn" title="复制全部信息">
+                                    <i class="fas fa-copy"></i> 复制全部
+                                </button>
+                                <button class="action-btn delete-btn" title="删除此API">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="api-field">
+                            <div class="field-label">API URL</div>
+                            <div class="field-value">
+                                <span class="url-text" title="${escapeHtml(api.url)}">${escapeHtml(displayUrl)}</span>
+                                <button class="copy-field" data-value="${escapeHtml(api.url)}">
+                                    <i class="fas fa-copy"></i> 复制
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="api-field">
+                            <div class="field-label">API密钥</div>
+                            <div class="field-value">
+                                ${escapeHtml(api.key)}
+                                <button class="copy-field" data-value="${escapeHtml(api.key)}">
+                                    <i class="fas fa-copy"></i> 复制
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="divider"></div>
+                        
+                        <div class="model-header">
+                            <div class="model-title">绑定模型 (${api.models ? api.models.length : 0}个)</div>
+                            <button class="copy-all-models-btn" data-value="${api.models ? api.models.join(', ') : ''}">
+                                <i class="fas fa-copy"></i> 复制所有
+                            </button>
+                        </div>
+                        
+                        <div class="model-list">
+                            ${modelsHtml || '<div style="color: #999; font-style: italic; padding: 10px;">暂无绑定模型</div>'}
+                        </div>
+                        
+                        <div class="date-field">
+                            <div class="field-label">添加日期</div>
+                            <div class="field-value">
+                                ${api.date}
+                            </div>
+                        </div>
+                    `;
+                    
+                    apiListContainer.appendChild(apiCard);
+                    
+                    // 为复制按钮添加事件
+                    const copyButtons = apiCard.querySelectorAll('.copy-field');
+                    copyButtons.forEach(button => {
+                        button.addEventListener('click', function() {
+                            const valueToCopy = this.getAttribute('data-value');
+                            copyToClipboard(valueToCopy);
+                            showNotification('已复制到剪贴板');
+                        });
+                    });
+                    
+                    // 为模型复制按钮添加事件
+                    const modelCopyButtons = apiCard.querySelectorAll('.model-copy-btn');
+                    modelCopyButtons.forEach(button => {
+                        button.addEventListener('click', function() {
+                            const model = this.getAttribute('data-model');
+                            copyToClipboard(model);
+                            showNotification(`模型 "${model}" 已复制`);
+                        });
+                    });
+                    
+                    // 为复制所有模型按钮添加事件
+                    const copyAllModelsBtn = apiCard.querySelector('.copy-all-models-btn');
+                    copyAllModelsBtn.addEventListener('click', function() {
+                        const models = this.getAttribute('data-value');
+                        if (models) {
+                            copyToClipboard(models);
+                            showNotification('所有模型已复制到剪贴板');
+                        } else {
+                            showNotification('没有模型可复制', 'warning');
+                        }
+                    });
+                    
+                    // 为复制全部按钮添加事件
+                    const copyAllBtn = apiCard.querySelector('.copy-all-btn');
+                    copyAllBtn.addEventListener('click', function() {
+                        const apiInfo = `API名称: ${api.name}\nURL: ${api.url}\n密钥: ${api.key}\n模型: ${api.models ? api.models.join(', ') : '无'}\n添加日期: ${api.date}`;
+                        copyToClipboard(apiInfo);
+                        showNotification('全部信息已复制到剪贴板');
+                    });
+                    
+                    // 为删除按钮添加事件
+                    const deleteBtn = apiCard.querySelector('.delete-btn');
+                    deleteBtn.addEventListener('click', function() {
+                        if (confirm(`确定要删除 "${api.name}" 吗？`)) {
+                            deleteApi(api.id);
+                        }
+                    });
+                });
+            }
+            
+            // 删除API
+            function deleteApi(id) {
+                apiList = apiList.filter(api => api.id !== id);
+                saveToLocalStorage('apiList', apiList);
+                renderApiList();
+                showNotification('API已删除');
+            }
+            
+            // 清空表单
+            function clearForm() {
+                apiUrlInput.value = '';
+                apiKeyInput.value = '';
+                apiNameInput.value = '';
+                apiModelInput.value = '';
+                selectedModels = [];
+                renderSelectedModels();
+                apiUrlInput.focus();
+            }
+            
+            // 复制到剪贴板
+            function copyToClipboard(text) {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.opacity = '0';
+                document.body.appendChild(textArea);
+                textArea.select();
+                
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('复制失败:', err);
+                }
+                
+                document.body.removeChild(textArea);
+            }
+            
+            // 显示通知
+            function showNotification(message, type = 'success') {
+                notificationText.textContent = message;
+                
+                // 设置通知颜色
+                if (type === 'error') {
+                    notification.style.backgroundColor = '#e74c3c';
+                } else if (type === 'warning') {
+                    notification.style.backgroundColor = '#f39c12';
+                } else {
+                    notification.style.backgroundColor = '#2ecc71';
+                }
+                
+                notification.classList.add('show');
+                
+                // 3秒后隐藏通知
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+            
+            // 从本地存储加载数据
+            function loadFromLocalStorage(key) {
+                try {
+                    const data = localStorage.getItem(key);
+                    return data ? JSON.parse(data) : null;
+                } catch (e) {
+                    console.error('从本地存储加载数据失败:', e);
+                    return null;
+                }
+            }
+            
+            // 保存数据到本地存储
+            function saveToLocalStorage(key, data) {
+                try {
+                    localStorage.setItem(key, JSON.stringify(data));
+                } catch (e) {
+                    console.error('保存数据到本地存储失败:', e);
+                    showNotification('保存失败，请检查存储空间', 'error');
+                }
+            }
+            
+            // 转义HTML特殊字符，防止XSS攻击
+            function escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            // 添加一些示例数据（首次使用时）
+            if (apiList.length === 0) {
+                setTimeout(() => {
+                    if (confirm('这是您第一次使用API存储管理器。要添加一些示例数据吗？')) {
+                        apiList = [
+                            {
+                                id: '1',
+                                url: 'https://gcli.ggchan.dev/v1/chat/completions',
+                                key: 'sk-example1234567890abcdefghijklmnop',
+                                models: ['gpt-4', 'gpt-3.5-turbo', 'dall-e-3'],
+                                name: '11',
+                                date: new Date().toLocaleDateString('zh-CN')
+                            },
+                            {
+                                id: '2',
+                                url: 'https://api.anthropic.com/v1/messages',
+                                key: 'sk-ant-example1234567890abcdefghijkl',
+                                models: ['claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
+                                name: 'Claude API',
+                                date: new Date().toLocaleDateString('zh-CN')
+                            }
+                        ];
+                        
+                        saveToLocalStorage('apiList', apiList);
+                        renderApiList();
+                    }
+                }, 500);
+            }
+            
+            // 初始化渲染已选择的模型
+            renderSelectedModels();
+        });
+    </script>
+</body>
+</html>
